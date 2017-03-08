@@ -1,35 +1,11 @@
 language: cpp
 matrix:
   include:
-    - os: linux
-      services:
-        - docker
-      env:
-        - BUILD_APIDOC=true
-        - BUILD_CMAKE=true
-        # Auth token to push API documentation
-        - secure: "JKeXk8p65hodb12PVRST6A90swsNubc+46EbSJGSghldIxbFWLBAlwU+KLeOMO4V0veu6k4lnMa50V0UYFZmoUsS6W0aL5Ybo98SpzXHiNLOmOluoqJoF9TBsOTCCRFbWbccgJyVEtulgRcdml96naS51lq9Sw/VO/N3Z472304="
-    - os: linux
-      services:
-        - docker
-      env:
-        - BUILD_UNITTEST=true
-        - BUILD_CMAKE=true
-    - os: osx
-      osx_image: xcode6.4
-      compiler: clang
-      env:
-        - BUILD_CMAKE=false
     - os: osx
       osx_image: xcode6.4
       compiler: clang
       env:
         - BUILD_CMAKE=true
-  allow_failures:
-    - env:
-      - BUILD_APIDOC=true
-      - BUILD_CMAKE=true
-      - secure: "JKeXk8p65hodb12PVRST6A90swsNubc+46EbSJGSghldIxbFWLBAlwU+KLeOMO4V0veu6k4lnMa50V0UYFZmoUsS6W0aL5Ybo98SpzXHiNLOmOluoqJoF9TBsOTCCRFbWbccgJyVEtulgRcdml96naS51lq9Sw/VO/N3Z472304="
 install:
   - >
     if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then

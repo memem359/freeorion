@@ -8,6 +8,10 @@ init:
 
 clone_depth: 50
 
+branches:
+  except:
+    - osx-cmake
+
 install:
   # Remove the VS Xamarin targets to reduce AppVeyor specific noise in build
   # logs.  See also http://help.appveyor.com/discussions/problems/4569

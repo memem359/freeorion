@@ -230,6 +230,21 @@ link_directories(
     ${Boost_LIBRARY_DIRS}
 )
 
+file(GLOB_RECURSE FREEORION_ASSETS RELATIVE "${PROJECT_SOURCE_DIR}" default/*)
+foreach(ASSET ${FREEORION_ASSETS})
+    get_filename_component(ASSET_DIR "${ASSET}" DIRECTORY)
+    set_property(SOURCE "${ASSET}" PROPERTY FOLDER "${ASSET_DIR}")
+    set_property(SOURCE "${ASSET}" PROPERTY MACOSX_PACKAGE_LOCATION "Resources/${ASSET_DIR}")
+endforeach()
+list(APPEND FREEORION_ASSETS Changelog.md)
+set_property(SOURCE Changelog.md PROPERTY MACOSX_PACKAGE_LOCATION "Resources/")
+if(APPLE)
+    list(APPEND FREEORION_ASSETS Xcode/FreeOrion.icns)
+    set_property(SOURCE Xcode/FreeOrion.icns PROPERTY MACOSX_PACKAGE_LOCATION "Resources/")
+    list(APPEND FREEORION_ASSETS Xcode/main.xib)
+    set_property(SOURCE Xcode/main.xib PROPERTY MACOSX_PACKAGE_LOCATION "Resources/")
+endif()
+
 
 ##
 ## Define main project targets.
@@ -250,6 +265,14 @@ set_source_files_properties(
     PROPERTIES
     GENERATED TRUE
 )
+
+if(Apple)
+    set_source_files_properties(
+        "${CMAKE_CURRENT_SOURCE_DIR}/Xcode/Info.plist"
+        PROPERTIES
+        GENERATED TRUE
+    )
+endif()
 
 
 add_library(freeorioncommon "")
@@ -453,7 +476,9 @@ target_dependencies_copy_to_build(freeorionca)
 target_dependent_data_symlink_to_build(freeorionca ${PROJECT_SOURCE_DIR}/default)
 
 
-add_executable(freeorion "")
+add_executable(freeorion
+    ${FREEORION_ASSETS}
+)
 
 if(WIN32)
     set_property(TARGET freeorion
@@ -466,6 +491,29 @@ if(WIN32)
                 VS_STARTUP_PROJECT freeorion
         )
     endif()
+endif()
+
+if(APPLE)
+    set_property(TARGET freeorion
+        PROPERTY
+            OUTPUT_NAME FreeOrion
+    )
+    # Workaround for creating the initial Info.plist, which needs to exist
+    # at configuration time.
+    execute_process(
+        COMMAND
+        "${PYTHON_EXECUTABLE}"
+        "${CMAKE_SOURCE_DIR}/cmake/make_versioncpp.py"
+        "${CMAKE_SOURCE_DIR}"
+        "CMake"
+    )
+    set_target_properties(freeorion
+        PROPERTIES
+            MACOSX_BUNDLE TRUE
+            MACOSX_BUNDLE_BUNDLE_NAME "${PROJECT_NAME}"
+            MACOSX_BUNDLE_INFO_PLIST "${PROJECT_SOURCE_DIR}/Xcode/Info.plist"
+            RESOURCE "${PROJECT_SOURCE_DIR}/Xcode/main.xib"
+    )
 endif()
 
 target_compile_options(freeorion
@@ -521,6 +569,25 @@ target_link_libraries(freeorion
 target_dependencies_copy_to_build(freeorion)
 target_dependent_data_symlink_to_build(freeorion ${PROJECT_SOURCE_DIR}/default)
 
+if(APPLE)
+    add_custom_command(TARGET freeorion POST_BUILD
+        COMMAND
+            ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:freeorion>/../Executables"
+        COMMAND
+            ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:freeorionca>" "$<TARGET_FILE_DIR:freeorion>/../Executables"
+        COMMAND
+            ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:freeoriond>" "$<TARGET_FILE_DIR:freeorion>/../Executables"
+        COMMAND
+            ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:freeorion>/../SharedSupport"
+        COMMAND
+            ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:freeorioncommon>" "$<TARGET_FILE_DIR:freeorion>/../SharedSupport"
+        COMMAND
+            ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:freeorionparse>" "$<TARGET_FILE_DIR:freeorion>/../SharedSupport"
+        COMMAND
+            ${CMAKE_COMMAND} -E copy_directory "${CMAKE_FRAMEWORK_PATH}" "$<TARGET_FILE_DIR:freeorion>/../Frameworks"
+    )
+endif()
+
 
 ##
 ## Recurse into sources.
@@ -560,6 +627,8 @@ install(
         freeorionca
         freeorion
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    COMPONENT COMPONENT_FREEORION
+    BUNDLE DESTINATION .
     COMPONENT COMPONENT_FREEORION
 )
 

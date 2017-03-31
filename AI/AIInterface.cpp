@@ -220,8 +220,13 @@ namespace AIInterface {
     }
 
     void UpdateResourcePools() {
-        for (std::map<int, Empire*>::value_type& entry : AIClientApp::GetApp()->Empires())
-            entry.second->UpdateResourcePools();
+        int empire_id = AIClientApp::GetApp()->EmpireID();
+        Empire* empire = ::GetEmpire(empire_id);
+        if (!empire) {
+            ErrorLogger() << "UpdateResearchQueue : couldn't get empire with id " << empire_id;
+            return;
+        }
+        empire->UpdateResourcePools();
     }
 
     void UpdateResearchQueue() {
